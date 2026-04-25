@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestão de Frota e Equipamentos</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#ffffff;--bg2:#f5f5f3;--bg3:#efefec;
+    --text:#1a1a1a;--text2:#6b6b6b;--text3:#999;
+    --border:#e0e0d8;--border2:#ccc;
+    --radius:10px;--radius-lg:14px;
+    --ok:#3B6D11;--ok-bg:#EAF3DE;
+    --warn:#854F0B;--warn-bg:#FAEEDA;
+    --danger:#A32D2D;--danger-bg:#FCEBEB;
+    --info:#185FA5;--info-bg:#E6F1FB;
+  }
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg3);color:var(--text);min-height:100vh}
+  .app{max-width:900px;margin:0 auto;padding:1.5rem 1rem}
+  
+  /* Header */
+  .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem}
+  .header-brand{display:flex;align-items:center;gap:10px}
+  .header-icon{width:38px;height:38px;background:#1a1a1a;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px}
+  .header-title h1{font-size:17px;font-weight:600;margin-bottom:1px}
+  .header-title p{font-size:12px;color:var(--text2)}
+  .nav{display:flex;gap:4px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:4px}
+  .nav-btn{background:transparent;border:none;border-radius:7px;padding:6px 14px;font-size:13px;cursor:pointer;color:var(--text2);transition:all 0.15s;font-weight:500}
+  .nav-btn.active{background:#1a1a1a;color:#fff}
+  
+  /* Stats */
+  .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.25rem}
+  .stat-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px}
+  .stat-label{font-size:11px;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em;font-weight:500}
+  .stat-value{font-size:26px;font-weight:600}
+  .stat-value.ok{color:var(--ok)}
+  .stat-value.warn{color:var(--warn)}
+  .stat-value.danger{color:var(--danger)}
+
+  /* Alerts */
+  .alert-banner{border-radius:var(--radius);padding:10px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;font-size:13px}
+  .alert-banner.danger{background:var(--danger-bg);border:1px solid #F09595;color:#501313}
+  .alert-banner.warning{background:var(--warn-bg);border:1px solid #EF9F27;color:#412402}
+  .alert-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+  .alert-banner.danger .alert-dot{background:#E24B4A}
+  .alert-banner.warning .alert-dot{background:#BA7517}
+
+  /* Section */
+  .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;margin-top:1.5rem}
+  .section-title{font-size:14px;font-weight:600;color:var(--text)}
+  
+  /* Buttons */
+  .btn-add{background:#1a1a1a;color:#fff;border:none;border-radius:var(--radius);padding:7px 16px;font-size:13px;cursor:pointer;font-weight:500;transition:opacity 0.15s}
+  .btn-add:hover{opacity:0.85}
+  .btn-cancel{background:transparent;border:1px solid var(--border2);border-radius:var(--radius);padding:7px 16px;font-size:13px;cursor:pointer;color:var(--text)}
+  .btn-save{background:#1a1a1a;color:#fff;border:none;border-radius:var(--radius);padding:7px 16px;font-size:13px;cursor:pointer;font-weight:500}
+  .btn-sm{font-size:12px;padding:5px 12px;border-radius:8px;cursor:pointer;font-weight:500;border:1px solid var(--border2);background:transparent;color:var(--text)}
+  .btn-sm:hover{background:var(--bg2)}
+  .btn-primary-sm{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
+  .btn-primary-sm:hover{opacity:0.85;background:#1a1a1a}
+  .btn-danger-sm{color:var(--danger);border-color:#F09595}
+  .btn-danger-sm:hover{background:var(--danger-bg)}
+
+  /* Cards */
+  .equip-grid{display:grid;gap:10px}
+  .equip-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;cursor:pointer;transition:border-color 0.15s,box-shadow 0.15s}
+  .equip-card:hover{border-color:#aaa;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
+  .equip-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+  .equip-name{font-size:15px;font-weight:600}
+  .equip-meta{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--text2);flex-wrap:wrap;margin-bottom:10px}
+  .equip-insp{display:flex;align-items:center;justify-content:space-between;padding-top:10px;border-top:1px solid var(--border)}
+  .insp-label{font-size:11px;color:var(--text2);margin-bottom:2px;text-transform:uppercase;letter-spacing:0.04em}
+  .insp-date{font-size:13px;font-weight:600}
+
+  /* Badges */
+  .equip-badge{font-size:11px;padding:3px 10px;border-radius:20px;font-weight:600;letter-spacing:0.02em}
+  .badge-veiculo{background:var(--info-bg);color:#0C447C}
+  .badge-compressor{background:#E1F5EE;color:#085041}
+  .badge-empilhador{background:var(--warn-bg);color:#633806}
+  .badge-outro{background:var(--bg2);color:#444}
+  .status-pill{font-size:11px;padding:4px 11px;border-radius:20px;font-weight:600}
+  .status-ok{background:var(--ok-bg);color:#27500A}
+  .status-warn{background:var(--warn-bg);color:#633806}
+  .status-danger{background:var(--danger-bg);color:#791F1F}
+  .status-expired{background:var(--bg2);color:#444}
+
+  /* Modal */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;z-index:1000;padding:1rem}
+  .modal{background:var(--bg);border-radius:var(--radius-lg);border:1px solid var(--border2);padding:1.5rem;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:0 10px 40px rgba(0,0,0,0.2)}
+  .modal-title{font-size:16px;font-weight:600;margin-bottom:1.25rem;padding-bottom:1rem;border-bottom:1px solid var(--border)}
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .form-group{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+  .form-group label{font-size:12px;color:var(--text2);font-weight:500}
+  .form-group input,.form-group select,.form-group textarea{font-size:13px;border-radius:8px;border:1px solid var(--border2);padding:8px 10px;background:var(--bg);color:var(--text);outline:none;transition:border-color 0.15s;font-family:inherit}
+  .form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:#666}
+  .form-group textarea{resize:vertical;min-height:65px}
+  .modal-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:1.25rem;padding-top:1rem;border-top:1px solid var(--border)}
+
+  /* Detail */
+  .back-btn{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--text2);cursor:pointer;margin-bottom:1rem;border:none;background:transparent;padding:0}
+  .back-btn:hover{color:var(--text)}
+  .detail-panel{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.5rem}
+  .detail-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.25rem;padding-bottom:1.25rem;border-bottom:1px solid var(--border)}
+  .detail-actions{display:flex;gap:6px;flex-shrink:0;margin-left:1rem}
+  .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1.25rem}
+  .info-item .lbl{font-size:11px;color:var(--text2);margin-bottom:3px;text-transform:uppercase;letter-spacing:0.04em;font-weight:500}
+  .info-item .val{font-size:14px;font-weight:600}
+  .insp-box{background:var(--bg2);border-radius:var(--radius);padding:14px 16px;margin-bottom:1.25rem;border:1px solid var(--border)}
+  .insp-box .lbl{font-size:11px;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.04em;font-weight:500}
+  .insp-row{display:flex;align-items:center;justify-content:space-between}
+  .insp-main-date{font-size:17px;font-weight:700}
+  .countdown{font-size:12px;margin-top:2px;font-weight:500}
+  .countdown.ok{color:var(--ok)}
+  .countdown.warn{color:var(--warn)}
+  .countdown.danger{color:var(--danger)}
+  .obs-box{background:var(--warn-bg);border:1px solid #F0C080;border-radius:var(--radius);padding:10px 14px;font-size:13px;color:#412402;margin-bottom:1.25rem}
+
+  /* Maintenance list */
+  .maint-list{margin-top:10px}
+  .maint-item{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
+  .maint-item:last-child{border-bottom:none}
+  .maint-date-col{min-width:78px;font-size:12px;color:var(--text2);font-weight:500;padding-top:2px}
+  .maint-tipo{display:inline-block;font-size:11px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-weight:600;margin-bottom:3px}
+  .maint-desc{font-size:12px;color:var(--text2)}
+  .maint-km{font-size:11px;color:var(--text3);margin-top:2px}
+  .maint-cost{font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;margin-left:auto;padding-top:2px}
+
+  .empty{text-align:center;padding:2.5rem 1rem;color:var(--text2);font-size:13px}
+  .tab-content{display:none}
+  .tab-content.active{display:block}
+  .leg-box{background:var(--info-bg);border:1px solid #B5D4F4;border-radius:var(--radius);padding:14px 16px;margin-bottom:1.25rem;font-size:13px;color:#0C447C}
+  .leg-box h3{font-size:13px;font-weight:700;margin-bottom:8px;color:#042C53}
+  .leg-box ul{padding-left:1.1rem}
+  .leg-box li{margin-bottom:4px;line-height:1.5}
+
+  /* Responsive */
+  @media(max-width:600px){
+    .stats-grid{grid-template-columns:repeat(2,1fr)}
+    .form-row{grid-template-columns:1fr}
+    .info-grid{grid-template-columns:1fr}
+    .nav-btn{padding:6px 10px;font-size:12px}
+    .detail-header{flex-direction:column;gap:10px}
+    .detail-actions{margin-left:0}
+  }
+  @media(prefers-color-scheme:dark){
+    :root{
+      --bg:#1c1c1e;--bg2:#2c2c2e;--bg3:#111113;
+      --text:#f0f0f0;--text2:#a0a0a0;--text3:#666;
+      --border:#3a3a3c;--border2:#4a4a4c;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="header">
+    <div class="header-brand">
+      <div class="header-icon">🔧</div>
+      <div class="header-title">
+        <h1>Gestão de Frota e Equipamentos</h1>
+        <p>Veículos · Compressores · Empilhadores</p>
+      </div>
+    </div>
+    <div class="nav">
+      <button class="nav-btn active" onclick="setView('dashboard')">Painel</button>
+      <button class="nav-btn" onclick="setView('equipamentos')">Equipamentos</button>
+      <button class="nav-btn" onclick="setView('manutencoes')">Manutenções</button>
+      <button class="nav-btn" onclick="setView('legislacao')">Legislação</button>
+    </div>
+  </div>
+
+  <!-- Dashboard -->
+  <div id="view-dashboard" class="tab-content active">
+    <div class="stats-grid" id="stats-grid"></div>
+    <div id="alerts-container"></div>
+    <div class="section-header" style="margin-top:1rem">
+      <span class="section-title">Próximas inspeções</span>
+    </div>
+    <div class="equip-grid" id="upcoming-list"></div>
+  </div>
+
+  <!-- Equipamentos -->
+  <div id="view-equipamentos" class="tab-content">
+    <div class="section-header" style="margin-top:0">
+      <span class="section-title">Todos os equipamentos</span>
+      <button class="btn-add" onclick="openAddEquip()">+ Adicionar</button>
+    </div>
+    <div class="equip-grid" id="equip-list"></div>
+  </div>
+
+  <!-- Manutenções -->
+  <div id="view-manutencoes" class="tab-content">
+    <div class="section-header" style="margin-top:0">
+      <span class="section-title">Registo de manutenções</span>
+      <button class="btn-add" onclick="openAddMaint()">+ Registar</button>
+    </div>
+    <div id="maint-full-list"></div>
+  </div>
+
+  <!-- Legislação -->
+  <div id="view-legislacao" class="tab-content">
+    <div class="section-header" style="margin-top:0">
+      <span class="section-title">Legislação portuguesa — prazos de inspeção</span>
+    </div>
+    <div class="leg-box">
+      <h3>🚗 Veículos ligeiros de passageiros (IMT)</h3>
+      <ul>
+        <li>1.ª inspeção: até ao fim do 4.º ano após matriculação</li>
+        <li>2.ª inspeção: 2 anos após a 1.ª</li>
+        <li>Seguintes: de 2 em 2 anos (até 7 anos de idade)</li>
+        <li>A partir dos 7 anos: anualmente</li>
+      </ul>
+    </div>
+    <div class="leg-box">
+      <h3>🚐 Veículos ligeiros de mercadorias / mistos</h3>
+      <ul>
+        <li>1.ª inspeção: fim do 1.º ano após matrícula</li>
+        <li>Seguintes: anualmente</li>
+      </ul>
+    </div>
+    <div class="leg-box">
+      <h3>🚛 Veículos pesados (passageiros e mercadorias)</h3>
+      <ul>
+        <li>Inspeção semestral (de 6 em 6 meses)</li>
+      </ul>
+    </div>
+    <div class="leg-box">
+      <h3>🏗️ Empilhadores (DGERT / Decreto-Lei 50/2005)</h3>
+      <ul>
+        <li>Inspeção periódica obrigatória: anual (12 meses)</li>
+        <li>Deve ser realizada por entidade acreditada ou responsável de segurança</li>
+        <li>Registo de verificações obrigatório</li>
+      </ul>
+    </div>
+    <div class="leg-box">
+      <h3>💨 Compressores (DGEG / DL 93/2010)</h3>
+      <ul>
+        <li>Equipamentos sob pressão: inspeção periódica obrigatória</li>
+        <li>Frequência definida pelo fabricante e pela classe de risco</li>
+        <li>Geralmente semestral ou anual (6 a 12 meses)</li>
+        <li>Inspecionados por Organismo de Inspeção Acreditado (OIA)</li>
+      </ul>
+    </div>
+    <div style="font-size:12px;color:var(--text2);margin-top:1rem;padding:10px;background:var(--bg2);border-radius:8px">
+      ⚠️ Esta informação é orientativa. Consulte sempre o IMT, DGERT e DGEG para informação oficial e atualizada.
+    </div>
+  </div>
+
+  <!-- Detail view -->
+  <div id="detail-view" style="display:none">
+    <button class="back-btn" onclick="closeDetail()">← Voltar</button>
+    <div class="detail-panel" id="detail-content"></div>
+  </div>
+
+</div><!-- .app -->
+
+<!-- Modal -->
+<div id="modal" style="display:none" class="modal-overlay" onclick="handleOverlayClick(event)">
+  <div class="modal" id="modal-content"></div>
+</div>
+
+<script>
+const STORAGE_KEY = 'frota_gestao_v2';
+
+const DEFAULT_STATE = {
+  equipamentos: [
+    {
+      id:'e1', nome:'Ford Transit', tipo:'veiculo', matricula:'AA-12-BB',
+      marca:'Ford', modelo:'Transit', ano:2018, combustivel:'Diesel', km:87430,
+      inspDate:'2025-09-15', obs:'',
+      manutencoes:[
+        {id:'m1',data:'2025-01-10',tipo:'Revisão',desc:'Óleo, filtros, pastilhas',custo:320,km:85000},
+        {id:'m2',data:'2024-07-22',tipo:'Pneus',desc:'4 pneus novos',custo:480,km:80200}
+      ]
+    },
+    {
+      id:'e2', nome:'Compressor Atlas Copco', tipo:'compressor', matricula:'',
+      marca:'Atlas Copco', modelo:'GA 15', ano:2020, combustivel:'Elétrico', km:null,
+      inspDate:'2025-03-01', obs:'Inspeção semestral obrigatória (DL 93/2010)',
+      manutencoes:[
+        {id:'m3',data:'2025-02-15',tipo:'Revisão',desc:'Filtro de ar, correia, separador de óleo',custo:210,km:null}
+      ]
+    },
+    {
+      id:'e3', nome:'Empilhador Toyota', tipo:'empilhador', matricula:'',
+      marca:'Toyota', modelo:'8FBE15', ano:2019, combustivel:'Elétrico', km:null,
+      inspDate:'2026-06-01', obs:'Inspeção anual — DL 50/2005',
+      manutencoes:[]
+    },
+    {
+      id:'e4', nome:'Renault Kangoo', tipo:'veiculo', matricula:'XY-78-ZZ',
+      marca:'Renault', modelo:'Kangoo', ano:2021, combustivel:'Diesel', km:34100,
+      inspDate:'2027-01-20', obs:'',
+      manutencoes:[]
+    }
+  ]
+};
+
+let state;
+try {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  state = saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(DEFAULT_STATE));
+} catch(e) {
+  state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+}
+
+let currentView = 'dashboard';
+let detailId = null;
+
+function save() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
+}
+
+function uid() { return 'x' + Math.random().toString(36).slice(2,9); }
+
+function fmtDate(d) {
+  if (!d) return '—';
+  const [y,m,dd] = d.split('-');
+  return `${dd}/${m}/${y}`;
+}
+
+function getStatus(equip) {
+  if (!equip.inspDate) return { label:'Sem data', cls:'status-expired', days:null };
+  const today = new Date(); today.setHours(0,0,0,0);
+  const d = new Date(equip.inspDate);
+  const diff = Math.round((d - today) / 86400000);
+  if (diff < 0)  return { label:'Expirada', cls:'status-expired', days:diff };
+  if (diff <= 30) return { label:'Urgente', cls:'status-danger', days:diff };
+  if (diff <= 90) return { label:`${diff} dias`, cls:'status-warn', days:diff };
+  return { label:'Em dia', cls:'status-ok', days:diff };
+}
+
+function tipoBadge(t) {
+  const map = { veiculo:'badge-veiculo', compressor:'badge-compressor', empilhador:'badge-empilhador', outro:'badge-outro' };
+  const lbl = { veiculo:'Veículo', compressor:'Compressor', empilhador:'Empilhador', outro:'Outro' };
+  return `<span class="equip-badge ${map[t]||'badge-outro'}">${lbl[t]||t}</span>`;
+}
+
+function equipCard(e, onclick) {
+  const s = getStatus(e);
+  return `<div class="equip-card" onclick="${onclick}">
+    <div class="equip-top">
+      <span class="equip-name">${e.nome}</span>
+      ${tipoBadge(e.tipo)}
+    </div>
+    <div class="equip-meta">
+      ${e.marca ? `<span>${e.marca} ${e.modelo||''}</span>` : ''}
+      ${e.matricula ? `<span>· ${e.matricula}</span>` : ''}
+      ${e.ano ? `<span>· ${e.ano}</span>` : ''}
+      ${e.km != null ? `<span>· ${e.km.toLocaleString('pt-PT')} km</span>` : ''}
+    </div>
+    <div class="equip-insp">
+      <div>
+        <div class="insp-label">Próxima inspeção</div>
+        <div class="insp-date">${fmtDate(e.inspDate)}</div>
+      </div>
+      <span class="status-pill ${s.cls}">${s.label}</span>
+    </div>
+  </div>`;
+}
+
+/* ===== VIEWS ===== */
+
+function setView(v) {
+  currentView = v;
+  document.querySelectorAll('.nav-btn').forEach((b,i) => {
+    b.classList.toggle('active', ['dashboard','equipamentos','manutencoes','legislacao'][i] === v);
+  });
+  ['dashboard','equipamentos','manutencoes','legislacao'].forEach(x => {
+    document.getElementById('view-'+x).classList.toggle('active', x === v);
+  });
+  document.getElementById('detail-view').style.display = 'none';
+  render();
+}
+
+function render() {
+  renderStats();
+  renderAlerts();
+  renderUpcoming();
+  renderEquipList();
+  renderMaintFull();
+}
+
+function renderStats() {
+  const all = state.equipamentos;
+  let expired=0, warn=0, ok=0;
+  all.forEach(e => {
+    const s = getStatus(e);
+    if (s.days===null || s.days<0) expired++;
+    else if (s.days<=90) warn++;
+    else ok++;
+  });
+  document.getElementById('stats-grid').innerHTML = `
+    <div class="stat-card"><div class="stat-label">Total</div><div class="stat-value">${all.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Em dia</div><div class="stat-value ok">${ok}</div></div>
+    <div class="stat-card"><div class="stat-label">Atenção (90 dias)</div><div class="stat-value warn">${warn}</div></div>
+    <div class="stat-card"><div class="stat-label">Expiradas</div><div class="stat-value danger">${expired}</div></div>
+  `;
+}
+
+function renderAlerts() {
+  let html = '';
+  state.equipamentos.forEach(e => {
+    const s = getStatus(e);
+    if (s.days !== null && s.days < 0) {
+      html += `<div class="alert-banner danger"><div class="alert-dot"></div>
+        <span><strong>${e.nome}</strong> — inspeção expirada desde ${fmtDate(e.inspDate)}</span></div>`;
+    } else if (s.days !== null && s.days <= 30) {
+      html += `<div class="alert-banner danger"><div class="alert-dot"></div>
+        <span><strong>${e.nome}</strong> — inspeção expira em <strong>${s.days} dias</strong> (${fmtDate(e.inspDate)})</span></div>`;
+    } else if (s.days !== null && s.days <= 90) {
+      html += `<div class="alert-banner warning"><div class="alert-dot"></div>
+        <span><strong>${e.nome}</strong> — inspeção expira em ${s.days} dias (${fmtDate(e.inspDate)})</span></div>`;
+    }
+  });
+  document.getElementById('alerts-container').innerHTML =
+    html || '<p style="font-size:13px;color:var(--text2);margin-bottom:1rem">✓ Sem alertas de inspeção ativos.</p>';
+}
+
+function renderUpcoming() {
+  const sorted = [...state.equipamentos].filter(e=>e.inspDate)
+    .sort((a,b) => new Date(a.inspDate)-new Date(b.inspDate)).slice(0,6);
+  document.getElementById('upcoming-list').innerHTML =
+    sorted.length ? sorted.map(e => equipCard(e,`openDetail('${e.id}')`)).join('') :
+    '<div class="empty">Nenhum equipamento registado</div>';
+}
+
+function renderEquipList() {
+  const el = document.getElementById('equip-list');
+  if (!el) return;
+  el.innerHTML = state.equipamentos.length
+    ? state.equipamentos.map(e => equipCard(e,`openDetail('${e.id}')`)).join('')
+    : '<div class="empty">Nenhum equipamento. Clique em "+ Adicionar" para começar.</div>';
+}
+
+function renderMaintFull() {
+  const el = document.getElementById('maint-full-list');
+  if (!el) return;
+  const all = [];
+  state.equipamentos.forEach(e => {
+    (e.manutencoes||[]).forEach(m => all.push({...m, equipNome:e.nome, equipId:e.id}));
+  });
+  all.sort((a,b) => new Date(b.data)-new Date(a.data));
+  if (!all.length) { el.innerHTML='<div class="empty">Nenhuma manutenção registada</div>'; return; }
+  el.innerHTML = `<div class="detail-panel">
+    <div class="maint-list">
+    ${all.map(m=>`<div class="maint-item">
+      <div class="maint-date-col">${fmtDate(m.data)}</div>
+      <div style="flex:1">
+        <span class="maint-tipo">${m.tipo}</span>
+        <div style="font-size:13px;font-weight:600;margin-bottom:2px">${m.equipNome}</div>
+        ${m.desc?`<div class="maint-desc">${m.desc}</div>`:''}
+        ${m.km?`<div class="maint-km">${m.km.toLocaleString('pt-PT')} km/h</div>`:''}
+      </div>
+      ${m.custo?`<div class="maint-cost">${m.custo.toLocaleString('pt-PT',{minimumFractionDigits:2})} €</div>`:''}
+    </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+/* ===== DETAIL ===== */
+
+function openDetail(id) {
+  detailId = id;
+  const e = state.equipamentos.find(x=>x.id===id);
+  if (!e) return;
+  const s = getStatus(e);
+  const maints = (e.manutencoes||[]).slice().sort((a,b)=>new Date(b.data)-new Date(a.data));
+  const totalCusto = maints.reduce((sum,m)=>sum+(m.custo||0),0);
+
+  let countdownTxt = '';
+  let countdownCls = '';
+  if (s.days===null) { countdownTxt='Data não definida'; }
+  else if (s.days<0) { countdownTxt=`Expirada há ${Math.abs(s.days)} dias`; countdownCls='danger'; }
+  else { countdownTxt=`Expira em ${s.days} dias`; countdownCls=s.days<=30?'danger':s.days<=90?'warn':'ok'; }
+
+  document.getElementById('detail-content').innerHTML = `
+    <div class="detail-header">
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+          <span style="font-size:18px;font-weight:700">${e.nome}</span>
+          ${tipoBadge(e.tipo)}
+        </div>
+        ${e.matricula?`<div style="font-size:13px;color:var(--text2);font-weight:600">📋 ${e.matricula}</div>`:''}
+      </div>
+      <div class="detail-actions">
+        <button class="btn-sm" onclick="openEditEquip('${e.id}')">✏️ Editar</button>
+        <button class="btn-sm btn-primary-sm" onclick="openAddMaintFor('${e.id}')">+ Manutenção</button>
+        <button class="btn-sm btn-danger-sm" onclick="deleteEquip('${e.id}')">🗑</button>
+      </div>
+    </div>
+
+    <div class="info-grid">
+      <div class="info-item"><div class="lbl">Marca / Modelo</div><div class="val">${(e.marca||'—')+' '+(e.modelo||'')}</div></div>
+      <div class="info-item"><div class="lbl">Ano</div><div class="val">${e.ano||'—'}</div></div>
+      ${e.combustivel?`<div class="info-item"><div class="lbl">Combustível / Energia</div><div class="val">${e.combustivel}</div></div>`:''}
+      ${e.km!=null?`<div class="info-item"><div class="lbl">Quilómetros / Horas</div><div class="val">${e.km.toLocaleString('pt-PT')}</div></div>`:''}
+      <div class="info-item"><div class="lbl">Manutenções</div><div class="val">${maints.length}</div></div>
+      ${totalCusto>0?`<div class="info-item"><div class="lbl">Custo total</div><div class="val">${totalCusto.toLocaleString('pt-PT',{minimumFractionDigits:2})} €</div></div>`:''}
+    </div>
+
+    <div class="insp-box">
+      <div class="lbl">Inspeção periódica</div>
+      <div class="insp-row">
+        <div>
+          <div class="insp-main-date">${fmtDate(e.inspDate)||'Não definida'}</div>
+          <div class="countdown ${countdownCls}">${countdownTxt}</div>
+        </div>
+        <span class="status-pill ${s.cls}">${s.label}</span>
+      </div>
+    </div>
+
+    ${e.obs?`<div class="obs-box">📌 ${e.obs}</div>`:''}
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <div class="section-title">Histórico de manutenções (${maints.length})</div>
+    </div>
+    ${maints.length ? `<div class="maint-list">${maints.map(m=>`
+      <div class="maint-item">
+        <div class="maint-date-col">${fmtDate(m.data)}</div>
+        <div style="flex:1">
+          <span class="maint-tipo">${m.tipo}</span>
+          ${m.desc?`<div class="maint-desc" style="margin-top:3px">${m.desc}</div>`:''}
+          ${m.km?`<div class="maint-km">${m.km.toLocaleString('pt-PT')} km/h</div>`:''}
+        </div>
+        ${m.custo?`<div class="maint-cost">${m.custo.toLocaleString('pt-PT',{minimumFractionDigits:2})} €</div>`:''}
+      </div>`).join('')}</div>` :
+    `<div style="font-size:13px;color:var(--text2);padding:1rem 0">Nenhuma manutenção registada ainda.</div>`}
+  `;
+
+  document.getElementById('detail-view').style.display = 'block';
+  ['dashboard','equipamentos','manutencoes','legislacao'].forEach(x=>{
+    document.getElementById('view-'+x).classList.remove('active');
+  });
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function closeDetail() {
+  document.getElementById('detail-view').style.display = 'none';
+  document.getElementById('view-'+currentView).classList.add('active');
+}
+
+/* ===== MODALS ===== */
+
+function showModal(html) {
+  document.getElementById('modal-content').innerHTML = html;
+  document.getElementById('modal').style.display = 'flex';
+}
+function closeModal() { document.getElementById('modal').style.display = 'none'; }
+function handleOverlayClick(e) { if (e.target.id==='modal') closeModal(); }
+
+function equipFormHTML(e) {
+  const v = e || {};
+  const sel = (field, val) => val===field ? 'selected' : '';
+  return `
+    <div class="form-row">
+      <div class="form-group"><label>Nome / Designação *</label>
+        <input id="f-nome" placeholder="ex: Ford Transit" value="${v.nome||''}"></div>
+      <div class="form-group"><label>Tipo *</label>
+        <select id="f-tipo">
+          <option value="veiculo" ${sel('veiculo',v.tipo)}>Veículo</option>
+          <option value="compressor" ${sel('compressor',v.tipo)}>Compressor</option>
+          <option value="empilhador" ${sel('empilhador',v.tipo)}>Empilhador</option>
+          <option value="outro" ${sel('outro',v.tipo)}>Outro</option>
+        </select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Marca</label>
+        <input id="f-marca" placeholder="ex: Ford" value="${v.marca||''}"></div>
+      <div class="form-group"><label>Modelo</label>
+        <input id="f-modelo" placeholder="ex: Transit" value="${v.modelo||''}"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Ano</label>
+        <input id="f-ano" type="number" min="1900" max="2099" placeholder="2022" value="${v.ano||''}"></div>
+      <div class="form-group"><label>Matrícula (veículos)</label>
+        <input id="f-mat" placeholder="AA-00-BB" value="${v.matricula||''}"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Combustível / Energia</label>
+        <select id="f-comb">
+          <option value="">—</option>
+          <option value="Diesel" ${sel('Diesel',v.combustivel)}>Diesel</option>
+          <option value="Gasolina" ${sel('Gasolina',v.combustivel)}>Gasolina</option>
+          <option value="Elétrico" ${sel('Elétrico',v.combustivel)}>Elétrico</option>
+          <option value="GPL" ${sel('GPL',v.combustivel)}>GPL</option>
+          <option value="Híbrido" ${sel('Híbrido',v.combustivel)}>Híbrido</option>
+        </select></div>
+      <div class="form-group"><label>Quilómetros / Horas atuais</label>
+        <input id="f-km" type="number" placeholder="0" value="${v.km!=null?v.km:''}"></div>
+    </div>
+    <div class="form-group"><label>Data da próxima inspeção</label>
+      <input id="f-insp" type="date" value="${v.inspDate||''}"></div>
+    <div class="form-group"><label>Observações</label>
+      <textarea id="f-obs" placeholder="Notas, referências legais, etc.">${v.obs||''}</textarea></div>
+  `;
+}
+
+function openAddEquip() {
+  showModal(`<div class="modal-title">Adicionar equipamento</div>
+    ${equipFormHTML(null)}
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
+      <button class="btn-save" onclick="saveEquip()">Guardar</button>
+    </div>`);
+}
+
+function openEditEquip(id) {
+  const e = state.equipamentos.find(x=>x.id===id);
+  if (!e) return;
+  showModal(`<div class="modal-title">Editar: ${e.nome}</div>
+    ${equipFormHTML(e)}
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
+      <button class="btn-save" onclick="saveEquip('${id}')">Guardar alterações</button>
+    </div>`);
+}
+
+function saveEquip(id) {
+  const nome = document.getElementById('f-nome').value.trim();
+  if (!nome) { alert('O nome é obrigatório.'); return; }
+  const obj = {
+    id: id || uid(),
+    nome,
+    tipo:       document.getElementById('f-tipo').value,
+    marca:      document.getElementById('f-marca').value.trim(),
+    modelo:     document.getElementById('f-modelo').value.trim(),
+    ano:        parseInt(document.getElementById('f-ano').value) || null,
+    matricula:  document.getElementById('f-mat').value.trim().toUpperCase(),
+    combustivel:document.getElementById('f-comb').value,
+    km:         parseInt(document.getElementById('f-km').value) || null,
+    inspDate:   document.getElementById('f-insp').value || null,
+    obs:        document.getElementById('f-obs').value.trim(),
+    manutencoes:[]
+  };
+  if (id) {
+    const idx = state.equipamentos.findIndex(x=>x.id===id);
+    obj.manutencoes = state.equipamentos[idx].manutencoes || [];
+    state.equipamentos[idx] = obj;
+  } else {
+    state.equipamentos.push(obj);
+  }
+  save(); closeModal(); render();
+  if (id) openDetail(id);
+}
+
+function deleteEquip(id) {
+  const e = state.equipamentos.find(x=>x.id===id);
+  if (!confirm(`Apagar "${e?.nome}" e todo o seu histórico? Esta ação não pode ser desfeita.`)) return;
+  state.equipamentos = state.equipamentos.filter(x=>x.id!==id);
+  save(); closeDetail(); render();
+}
+
+function openAddMaint() {
+  if (!state.equipamentos.length) { alert('Adicione primeiro um equipamento.'); return; }
+  const opts = state.equipamentos.map(e=>`<option value="${e.id}">${e.nome}</option>`).join('');
+  showMaintModal(null, opts);
+}
+
+function openAddMaintFor(equipId) {
+  const opts = state.equipamentos.map(e=>
+    `<option value="${e.id}" ${e.id===equipId?'selected':''}>${e.nome}</option>`).join('');
+  showMaintModal(equipId, opts);
+}
+
+function showMaintModal(equipId, opts) {
+  const today = new Date().toISOString().split('T')[0];
+  showModal(`<div class="modal-title">Registar manutenção</div>
+    <div class="form-group"><label>Equipamento *</label><select id="m-equip">${opts}</select></div>
+    <div class="form-row">
+      <div class="form-group"><label>Data *</label><input id="m-data" type="date" value="${today}"></div>
+      <div class="form-group"><label>Tipo de intervenção</label>
+        <select id="m-tipo">
+          <option>Revisão</option><option>Pneus</option><option>Inspeção</option>
+          <option>Reparação</option><option>Óleo</option><option>Travões</option>
+          <option>Bateria</option><option>Filtros</option><option>Correia</option><option>Outro</option>
+        </select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Custo (€)</label>
+        <input id="m-custo" type="number" step="0.01" min="0" placeholder="0.00"></div>
+      <div class="form-group"><label>Quilómetros / Horas</label>
+        <input id="m-km" type="number" placeholder="opcional"></div>
+    </div>
+    <div class="form-group"><label>Descrição / Trabalhos realizados</label>
+      <textarea id="m-desc" placeholder="Peças substituídas, observações do mecânico..."></textarea></div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
+      <button class="btn-save" onclick="saveMaint()">Guardar</button>
+    </div>`);
+}
+
+function saveMaint() {
+  const equipId = document.getElementById('m-equip').value;
+  const data = document.getElementById('m-data').value;
+  if (!data) { alert('A data é obrigatória.'); return; }
+  const m = {
+    id:    uid(),
+    data,
+    tipo:  document.getElementById('m-tipo').value,
+    desc:  document.getElementById('m-desc').value.trim(),
+    custo: parseFloat(document.getElementById('m-custo').value) || null,
+    km:    parseInt(document.getElementById('m-km').value) || null
+  };
+  const e = state.equipamentos.find(x=>x.id===equipId);
+  if (e) { e.manutencoes = e.manutencoes||[]; e.manutencoes.push(m); }
+  save(); closeModal(); render();
+  if (detailId === equipId) openDetail(equipId);
+}
+
+render();
+</script>
+</body>
+</html>
